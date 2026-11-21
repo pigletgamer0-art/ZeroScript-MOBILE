@@ -4,6 +4,7 @@ on:
     paths:
       - 'ZeroScriptStudio-App-src.zip'
       - '.github/workflows/build.yml'
+      - 'mobile-overrides/**'
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,6 +19,8 @@ jobs:
             unzip -oq ZeroScriptStudio-App-src.zip -d /tmp/zeroscript-src
             cp -a /tmp/zeroscript-src/. .
           fi
+      - name: Apply mobile UI and launcher icon changes
+        run: python3 mobile-overrides/patch_android.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
