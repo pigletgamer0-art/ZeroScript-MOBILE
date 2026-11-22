@@ -114,41 +114,6 @@ s = s.replace(needle, """    private int dp(float value) {
 """ + needle, 1)
 java.write_text(s, encoding="utf-8")
 
-# Disable DOM-driven automation of consumer AI websites. This is a protective
-# stop-gap: the browser tabs remain usable manually, but ZeroScript must not
-# inject hidden prompts, replay turns, scrape replies, or execute tool calls
-# through personal web sessions. Re-enable only after official API adapters exist.
-main_js = root / "app/src/main/assets/zs/main.js"
-js = main_js.read_text(encoding="utf-8")
-anchor = "  const P = ZSProvider;\n"
-if anchor not in js:
-    raise SystemExit("Could not find provider bootstrap in main.js; refusing safety patch.")
-guard = """  const P = ZSProvider;
-  const WEB_AUTOMATION_DISABLED = true;
-  let webAutomationNoticeShown = false;
-  function notifyWebAutomationDisabled() {
-    if (webAutomationNoticeShown) return;
-    webAutomationNoticeShown = true;
-    ui.banner("warn", "Automatización web desactivada",
-      "Para proteger tus cuentas, ZeroScript no automatiza sesiones personales de ChatGPT, DeepSeek u otras IAs. Puedes usar esta página manualmente. La integración automática volverá mediante API oficiales.");
-  }
-"""
-if "const WEB_AUTOMATION_DISABLED = true;" not in js:
-    js = js.replace(anchor, guard, 1)
-for signature, statement in [
-    ("  async function submitAndGetBase(text, images) {\n",
-     "    if (WEB_AUTOMATION_DISABLED) { notifyWebAutomationDisabled(); return P.assistantCount(); }\n"),
-    ("  async function agentLoop(base) {\n",
-     "    if (WEB_AUTOMATION_DISABLED) { notifyWebAutomationDisabled(); return; }\n"),
-    ("  async function startSession() {\n",
-     "    if (WEB_AUTOMATION_DISABLED) { notifyWebAutomationDisabled(); return; }\n"),
-]:
-    if signature not in js:
-        raise SystemExit("Could not find expected function " + signature.strip() + "; refusing safety patch.")
-    if statement.strip() not in js:
-        js = js.replace(signature, signature + statement, 1)
-main_js.write_text(js, encoding="utf-8")
-
 # Do not disguise Android WebView as a regular browser. Let providers receive
 # the genuine WebView user-agent instead of stripping the "; wv" marker.
 activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
@@ -168,7 +133,7 @@ if "applicationId 'com.zeroscript.studio.mobile'" not in gradle_source:
         raise SystemExit("Could not find applicationId in app/build.gradle.")
     gradle_source = gradle_source.replace(
         "applicationId 'com.zeroscript.studio'",
-        "applicationId 'com.zeroscript.studio.safe'", 1
+        "applicationId 'com.zeroscript.studio.mobile'", 1
     )
 gradle_source = gradle_source.replace("versionCode 1", "versionCode 2", 1)
 gradle_source = gradle_source.replace("versionName '1.5.5-mobile'", "versionName '1.6.0-mobile'", 1)
@@ -181,7 +146,7 @@ manifest.write_text(manifest_source, encoding="utf-8")
 
 manifest = root / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text(encoding="utf-8")
-m = m.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio"\n        android:icon="@mipmap/ic_launcher"\n        android:roundIcon="@mipmap/ic_launcher_round"', 1)
+m = m.replace('android:label="ZeroScript Studio Mobile"', 'android:label="ZeroScript Studio Mobile"\n        android:icon="@mipmap/ic_launcher"\n        android:roundIcon="@mipmap/ic_launcher_round"', 1)
 manifest.write_text(m, encoding="utf-8")
 
 res = root / "app/src/main/res"
