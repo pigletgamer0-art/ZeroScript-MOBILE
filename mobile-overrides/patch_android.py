@@ -147,6 +147,16 @@ for signature, statement in [
         js = js.replace(signature, signature + statement, 1)
 main_js.write_text(js, encoding="utf-8")
 
+# Do not disguise Android WebView as a regular browser. Let providers receive
+# the genuine WebView user-agent instead of stripping the "; wv" marker.
+activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
+activity_source = activity.read_text(encoding="utf-8")
+activity_source = activity_source.replace(
+    '        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));\\n',
+    ''
+)
+activity.write_text(activity_source, encoding="utf-8")
+
 manifest = root / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text(encoding="utf-8")
 m = m.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio"\n        android:icon="@mipmap/ic_launcher"\n        android:roundIcon="@mipmap/ic_launcher_round"', 1)
