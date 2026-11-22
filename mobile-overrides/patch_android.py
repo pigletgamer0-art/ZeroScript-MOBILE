@@ -157,6 +157,26 @@ activity_source = activity_source.replace(
 )
 activity.write_text(activity_source, encoding="utf-8")
 
+# Install the protective build side-by-side with the existing app. This avoids
+# signature-conflict update failures and preserves the old app's local data.
+gradle_file = root / "app/build.gradle"
+gradle_source = gradle_file.read_text(encoding="utf-8")
+if "applicationId 'com.zeroscript.studio.safe'" not in gradle_source:
+    if "applicationId 'com.zeroscript.studio'" not in gradle_source:
+        raise SystemExit("Could not find applicationId in app/build.gradle.")
+    gradle_source = gradle_source.replace(
+        "applicationId 'com.zeroscript.studio'",
+        "applicationId 'com.zeroscript.studio.safe'", 1
+    )
+gradle_source = gradle_source.replace("versionCode 1", "versionCode 2", 1)
+gradle_source = gradle_source.replace("versionName '1.5.5-mobile'", "versionName '1.5.6-safe'", 1)
+gradle_file.write_text(gradle_source, encoding="utf-8")
+
+manifest = root / "app/src/main/AndroidManifest.xml"
+manifest_source = manifest.read_text(encoding="utf-8")
+manifest_source = manifest_source.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio Safe"', 1)
+manifest.write_text(manifest_source, encoding="utf-8")
+
 manifest = root / "app/src/main/AndroidManifest.xml"
 m = manifest.read_text(encoding="utf-8")
 m = m.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio"\n        android:icon="@mipmap/ic_launcher"\n        android:roundIcon="@mipmap/ic_launcher_round"', 1)
