@@ -4,7 +4,7 @@ root = Path(".")
 java = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
 s = java.read_text(encoding="utf-8")
 # Keep the genuine Android WebView user-agent; do not disguise the client.
-s = s.replace('        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));\\n', "")
+s = s.replace('        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));', "")
 s = s.replace("import android.widget.HorizontalScrollView;\n", "")
 old = """        LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -119,7 +119,7 @@ java.write_text(s, encoding="utf-8")
 activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
 activity_source = activity.read_text(encoding="utf-8")
 activity_source = activity_source.replace(
-    '        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));\\n',
+    '        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));',
     ''
 )
 activity.write_text(activity_source, encoding="utf-8")
