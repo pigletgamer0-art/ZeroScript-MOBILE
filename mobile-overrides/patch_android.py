@@ -203,3 +203,32 @@ manifest_source = manifest.read_text(encoding="utf-8")
 if ".ApiAgentActivity" not in manifest_source:
     manifest_source = manifest_source.replace("</application>", '        <activity android:name=".ApiAgentActivity" android:exported="false" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:windowSoftInputMode="adjustResize" />\n    </application>', 1)
 manifest.write_text(manifest_source, encoding="utf-8")
+
+# Safe provider browsing: do not inject scripts into consumer AI websites.
+# The API Agent above is the supported automation path; normal web tabs remain manual.
+import re
+activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
+activity_source = activity.read_text(encoding="utf-8")
+safe_create = """    private WebView create(final Provider p) {
+        final WebView w = new WebView(this);
+        WebSettings settings = w.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        CookieManager cookies = CookieManager.getInstance();
+        cookies.setAcceptCookie(true);
+        cookies.setAcceptThirdPartyCookies(w, true);
+        // No ZeroScript scripts, provider adapters, injected prompt, page bridge or DOM scraping.
+        w.setWebViewClient(new WebViewClient());
+        return w;
+    }
+
+"""
+activity_source, replaced = re.subn(
+    r"    private WebView create\\(final Provider p\\) \\{.*?(?=    private static boolean isOwn\\()",
+    safe_create, activity_source, count=1, flags=re.S
+)
+if replaced != 1:
+    raise SystemExit("Could not isolate provider WebView automation; refusing to build a misleading safe version.")
+activity.write_text(activity_source, encoding="utf-8")
