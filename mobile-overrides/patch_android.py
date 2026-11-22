@@ -3,6 +3,8 @@ from pathlib import Path
 root = Path(".")
 java = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
 s = java.read_text(encoding="utf-8")
+# Keep the genuine Android WebView user-agent; do not disguise the client.
+s = s.replace('        s.setUserAgentString(s.getUserAgentString().replace("; wv", ""));\\n', "")
 s = s.replace("import android.widget.HorizontalScrollView;\n", "")
 old = """        LinearLayout top = new LinearLayout(this);
         top.setOrientation(LinearLayout.HORIZONTAL);
@@ -161,7 +163,7 @@ activity.write_text(activity_source, encoding="utf-8")
 # signature-conflict update failures and preserves the old app's local data.
 gradle_file = root / "app/build.gradle"
 gradle_source = gradle_file.read_text(encoding="utf-8")
-if "applicationId 'com.zeroscript.studio.safe'" not in gradle_source:
+if "applicationId 'com.zeroscript.studio.mobile'" not in gradle_source:
     if "applicationId 'com.zeroscript.studio'" not in gradle_source:
         raise SystemExit("Could not find applicationId in app/build.gradle.")
     gradle_source = gradle_source.replace(
@@ -169,12 +171,12 @@ if "applicationId 'com.zeroscript.studio.safe'" not in gradle_source:
         "applicationId 'com.zeroscript.studio.safe'", 1
     )
 gradle_source = gradle_source.replace("versionCode 1", "versionCode 2", 1)
-gradle_source = gradle_source.replace("versionName '1.5.5-mobile'", "versionName '1.5.6-safe'", 1)
+gradle_source = gradle_source.replace("versionName '1.5.5-mobile'", "versionName '1.6.0-mobile'", 1)
 gradle_file.write_text(gradle_source, encoding="utf-8")
 
 manifest = root / "app/src/main/AndroidManifest.xml"
 manifest_source = manifest.read_text(encoding="utf-8")
-manifest_source = manifest_source.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio Safe"', 1)
+manifest_source = manifest_source.replace('android:label="ZeroScript Studio"', 'android:label="ZeroScript Studio Mobile"', 1)
 manifest.write_text(manifest_source, encoding="utf-8")
 
 manifest = root / "app/src/main/AndroidManifest.xml"
@@ -216,66 +218,3 @@ legacy = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
 """
 (res / "mipmap/ic_launcher.xml").write_text(legacy, encoding="utf-8")
 
-# SAFE MODE: keep provider websites as ordinary, user-operated pages.
-# Do not register a JS bridge, inject provider scripts, camouflage messages,
-# read chat DOM, submit prompts, or dispatch MCP commands from AI web sessions.
-# The existing WebView remains a normal browser surface with its real UA.
-import re
-activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
-activity_source = activity.read_text(encoding="utf-8")
-safe_create = """    private WebView create(final Provider p) {
-        final WebView w = new WebView(this);
-        WebSettings s = w.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setDatabaseEnabled(true);
-        s.setMediaPlaybackRequiresUserGesture(false);
-        // Keep Android WebView's genuine user-agent; never disguise the client.
-        CookieManager cm = CookieManager.getInstance();
-        cm.setAcceptCookie(true);
-        cm.setAcceptThirdPartyCookies(w, true);
-        // No injected scripts, no page bridge, no DOM scraping or auto-submit.
-        w.setWebViewClient(new WebViewClient());
-        return w;
-    }
-
-"""
-activity_source, count = re.subn(
-    r"    private WebView create\(final Provider p\) \{.*?(?=    private static boolean isOwn\()",
-    safe_create, activity_source, count=1, flags=re.S
-)
-if count != 1:
-    raise SystemExit("Could not replace WebView injection method; refusing unsafe build.")
-# Remove the misleading Mobile Studio status-only display and state the safe mode clearly.
-old_status = """        statusView.setText(alive
-                ? "Mobile Studio: conectado" + (place.isEmpty() ? "" : " (" + place + ")")
-                : (Hub.waitingForCode()
-                    ? "Mobile Studio muestra un codigo: menu \\u22EE > Conectar Mobile Studio y escribelo"
-                    : "Mobile Studio: sin conexion - instala el plugin (menu \\u22EE) y abre un place"));
-"""
-new_status = """        String studio = alive
-                ? "Mobile Studio: conectado" + (place.isEmpty() ? "" : " (" + place + ")")
-                : (Hub.waitingForCode()
-                    ? "Mobile Studio muestra un codigo: menu \\u22EE > Conectar Mobile Studio y escribelo"
-                    : "Mobile Studio: sin conexion - instala el plugin (menu \\u22EE) y abre un place");
-        statusView.setText("Modo seguro: las IAs funcionan solo manualmente; automatizacion desactivada.\\n" + studio);
-"""
-if old_status in activity_source:
-    activity_source = activity_source.replace(old_status, new_status, 1)
-# Add an explicit hand-off to the device's default browser.
-menu_anchor = '        m.getMenu().add(0, 3, 5, "Recargar pagina");\n'
-if menu_anchor not in activity_source:
-    raise SystemExit("Could not find menu insertion point.")
-activity_source = activity_source.replace(
-    menu_anchor,
-    menu_anchor + '        m.getMenu().add(0, 6, 4, "Abrir en navegador del sistema");\n', 1
-)
-case_anchor = '                case 3: if (current != null && views.get(current.id) != null) views.get(current.id).reload(); break;\n'
-if case_anchor not in activity_source:
-    raise SystemExit("Could not find menu action insertion point.")
-activity_source = activity_source.replace(
-    case_anchor,
-    case_anchor + '                case 6: if (current != null) { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(current.url))); } catch (Exception e) { Toast.makeText(this, "No hay navegador disponible", Toast.LENGTH_LONG).show(); } } break;\n',
-    1
-)
-activity.write_text(activity_source, encoding="utf-8")
