@@ -183,3 +183,23 @@ legacy = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
 """
 (res / "mipmap/ic_launcher.xml").write_text(legacy, encoding="utf-8")
 
+
+# Add an API-native agent path. It talks directly to provider APIs and never
+# controls a consumer website or reuses browser cookies.
+activity = root / "app/src/main/java/com/zeroscript/studio/MainActivity.java"
+activity_source = activity.read_text(encoding="utf-8")
+menu_anchor = '        m.getMenu().add(0, 3, 5, "Recargar pagina");\n'
+if menu_anchor not in activity_source:
+    raise SystemExit("Could not find menu anchor for API agent.")
+activity_source = activity_source.replace(menu_anchor, menu_anchor + '        m.getMenu().add(0, 7, 6, "Agente IA (API oficial)");\n', 1)
+switch_anchor = "            switch (it.getItemId()) {\n"
+if switch_anchor not in activity_source:
+    raise SystemExit("Could not find menu switch for API agent.")
+activity_source = activity_source.replace(switch_anchor, switch_anchor + '                case 7: startActivity(new Intent(this, ApiAgentActivity.class)); break;\n', 1)
+activity.write_text(activity_source, encoding="utf-8")
+
+manifest = root / "app/src/main/AndroidManifest.xml"
+manifest_source = manifest.read_text(encoding="utf-8")
+if ".ApiAgentActivity" not in manifest_source:
+    manifest_source = manifest_source.replace("</application>", '        <activity android:name=".ApiAgentActivity" android:exported="false" android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden" android:windowSoftInputMode="adjustResize" />\n    </application>', 1)
+manifest.write_text(manifest_source, encoding="utf-8")
