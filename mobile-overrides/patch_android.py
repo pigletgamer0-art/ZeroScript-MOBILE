@@ -263,7 +263,7 @@ new_status = """        String studio = alive
 if old_status in activity_source:
     activity_source = activity_source.replace(old_status, new_status, 1)
 # Add an explicit hand-off to the device's default browser.
-menu_anchor = '        m.getMenu().add(0, 3, 3, "Recargar pagina");\n'
+menu_anchor = '        m.getMenu().add(0, 3, 5, "Recargar pagina");\n'
 if menu_anchor not in activity_source:
     raise SystemExit("Could not find menu insertion point.")
 activity_source = activity_source.replace(
