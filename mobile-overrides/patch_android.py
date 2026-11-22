@@ -226,7 +226,7 @@ safe_create = """    private WebView create(final Provider p) {
 
 """
 activity_source, replaced = re.subn(
-    r"    private WebView create\\(final Provider p\\) \\{.*?(?=    private static boolean isOwn\\()",
+    r"    private WebView create\(final Provider p\) \{.*?(?=    private static boolean isOwn\()",
     safe_create, activity_source, count=1, flags=re.S
 )
 if replaced != 1:
