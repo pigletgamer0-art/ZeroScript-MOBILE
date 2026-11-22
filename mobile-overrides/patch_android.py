@@ -192,7 +192,7 @@ menu_anchor = '        m.getMenu().add(0, 3, 5, "Recargar pagina");\n'
 if menu_anchor not in activity_source:
     raise SystemExit("Could not find menu anchor for API agent.")
 activity_source = activity_source.replace(menu_anchor, menu_anchor + '        m.getMenu().add(0, 7, 6, "Agente IA (API oficial)");\n', 1)
-switch_anchor = "            switch (it.getItemId()) {\n"
+switch_anchor = "            switch (itemId) {\n"
 if switch_anchor not in activity_source:
     raise SystemExit("Could not find menu switch for API agent.")
 activity_source = activity_source.replace(switch_anchor, switch_anchor + '                case 7: startActivity(new Intent(this, ApiAgentActivity.class)); break;\n', 1)
